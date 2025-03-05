@@ -9,5 +9,5 @@
 ```
 
 ```
-/import file={name_of_file}.rsc
+/import file-name={name_of_file}.rsc
 ```
