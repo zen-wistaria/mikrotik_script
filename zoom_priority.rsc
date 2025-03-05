@@ -4,6 +4,10 @@
 # date   : 05-03-2025
 # by     : zen-wistaria
 
+# Remove Existing Firewall Address-list for Zoom
+/ip firewall address-list
+:foreach i in=[find where list="Zoom"] do={remove $i}
+
 # Create Firewall Address-list
 /ip firewall address-list
 add address=3.7.35.0/25 list=Zoom
@@ -85,16 +89,24 @@ add address=221.122.88.128/25 list=Zoom
 add address=221.122.89.128/25 list=Zoom
 add address=221.123.139.192/27 list=Zoom
 
+# Remove Existing Firewall Mangle for Zoom
+/ip firewall mangle
+:foreach i in=[find where comment="==================== Zoom"] do={remove $i}
+
 # Create Firewall Mangle
 /ip firewall mangle
-add action=mark-connection chain=prerouting comment="=========== Zoom" dst-address-list=Zoom dst-port=443,8801,8802 new-connection-mark=Zoom passthrough=yes protocol=tcp
-add action=mark-connection chain=prerouting dst-address-list=Zoom dst-port=3478,3479,8801-8810 new-connection-mark=Zoom passthrough=yes protocol=udp
-add action=mark-packet chain=forward connection-mark=Zoom new-packet-mark=Zoom passthrough=no
+add action=mark-connection chain=prerouting dst-address-list=Zoom dst-port=443,8801,8802 new-connection-mark=Zoom passthrough=yes protocol=tcp comment="==================== Zoom"
+add action=mark-connection chain=prerouting dst-address-list=Zoom dst-port=3478,3479,8801-8810 new-connection-mark=Zoom passthrough=yes protocol=udp comment="==================== Zoom"
+add action=mark-packet chain=forward connection-mark=Zoom new-packet-mark=Zoom passthrough=no comment="==================== Zoom"
 
-# Create Queue Type
+# Create Queue Type (Skip if exists)
 /queue type
-add fq-codel-interval=10ms fq-codel-limit=1000 kind=fq-codel name=FQ-Codel
+:if ([find where name="FQ-Codel"] = "") do={
+    add fq-codel-interval=10ms fq-codel-limit=1000 kind=fq-codel name=FQ-Codel
+}
 
-# Create Queue
+# Create Queue Tree (Skip if exists)
 /queue tree
-add limit-at=100M max-limit=300M name="Zoom" packet-mark=Zoom parent=global priority=7 queue=FQ-Codel
+:if ([find where name="Zoom"] = "") do={
+    add limit-at=100M max-limit=300M name="Zoom" packet-mark=Zoom parent=global priority=7 queue=FQ-Codel
+}
